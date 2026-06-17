@@ -566,19 +566,77 @@ const DOM = {
             this.renderStats();
         });
 
-        // Copy stats text report
-        this.copyReportBtn.addEventListener('click', () => {
-            const text = this.exportTextArea.textContent;
-            if (navigator.clipboard) {
-                navigator.clipboard.writeText(text).then(() => {
-                    alert('レポートをクリップボードにコピーしました！');
-                }).catch(err => {
-                    console.error('Clipboard copy failed:', err);
-                });
-            } else {
-                alert('ブラウザがクリップボードへの書き込みをサポートしていません。テキストエリアから直接コピーしてください。');
-            }
+        // Export / Import JSON functionality
+        this.exportJsonBtn = document.getElementById('export-json-btn');
+        this.importJsonBtn = document.getElementById('import-json-btn');
+        this.importJsonInput = document.getElementById('import-json-input');
+
+        // Export current data as JSON file
+        this.exportJsonBtn.addEventListener('click', () => {
+            const exportData = {
+                players: state.players,
+                gameRecords: state.gameRecords,
+                rules: state.rules
+            };
+            const jsonStr = JSON.stringify(exportData, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const today = new Date().toISOString().split('T')[0];
+            a.download = `mahjong_data_${today}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
         });
+
+        // Trigger hidden file input for import
+        this.importJsonBtn.addEventListener('click', () => {
+            this.importJsonInput.value = '';
+            this.importJsonInput.click();
+        });
+
+        // Handle file selection and load data
+        this.importJsonInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const data = JSON.parse(ev.target.result);
+                    if (data.players) {
+                        state.players = data.players;
+                        Storage.savePlayers();
+                        this.renderPlayerRoster();
+                    }
+                    if (data.rules) {
+                        state.rules = data.rules;
+                        Storage.saveRules();
+                        // Update UI controls to reflect imported rules
+                        this.ruleType.value = state.rules.playerCount;
+                        this.startPoints.value = state.rules.startPoints;
+                        this.returnPoints.value = state.rules.returnPoints;
+                        this.umaInputs.forEach((inp, i) => inp.value = state.rules.uma[i] ?? 0);
+                        this.roundingRule.value = state.rules.roundingRule;
+                        this.useYakitori.checked = state.rules.useYakitori;
+                        this.yakitoriPenalty.value = state.rules.yakitoriPenalty;
+                        this.yakitoriPointsGroup.style.display = state.rules.useYakitori ? 'flex' : 'none';
+                    }
+                    if (data.gameRecords) {
+                        state.gameRecords = data.gameRecords;
+                        Storage.saveRecords();
+                        this.renderHistory();
+                        this.renderStats();
+                    }
+                    alert('データのインポートが完了しました。');
+                } catch (err) {
+                    console.error(err);
+                    alert('インポート中にエラーが発生しました。JSON形式を確認してください。');
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        // Copy stats text report (existing listener retained below)
     },
 
     updateUmaPresets() {
@@ -1214,6 +1272,10 @@ const DOM = {
         } else if (period === 'month') {
             filtered = filtered.filter(r => r.date.startsWith(filterPrefix));
             periodTitle = `${currentYear}年${currentMonth}月度 成績`;
+        } else if (period === 'today') {
+            const today = now.toISOString().split('T')[0];
+            filtered = filtered.filter(r => r.date === today);
+            periodTitle = `${today} 成績`;
         }
 
         // Aggregate statistics per player

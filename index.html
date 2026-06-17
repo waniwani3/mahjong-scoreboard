@@ -243,6 +243,7 @@
                         <option value="all" selected>通算成績</option>
                         <option value="year">今年度成績</option>
                         <option value="month">今月度成績</option>
+                        <option value="today">本日成績</option>
                     </select>
                 </div>
 
@@ -265,6 +266,14 @@
                 <button class="btn btn-primary" id="copy-report-btn">
                     <i class="fa-solid fa-copy"></i> レポートをクリップボードにコピー
                 </button>
+                <!-- Export / Import JSON buttons -->
+                <button class="btn btn-secondary" id="export-json-btn" style="margin-left:0.5rem;">
+                    <i class="fa-solid fa-download"></i> データをエクスポート
+                </button>
+                <button class="btn btn-secondary" id="import-json-btn" style="margin-left:0.5rem;">
+                    <i class="fa-solid fa-upload"></i> データをインポート
+                </button>
+                <input type="file" id="import-json-input" accept="application/json" style="display:none;" />
             </div>
         </section>
 
